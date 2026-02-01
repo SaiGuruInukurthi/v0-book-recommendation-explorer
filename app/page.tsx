@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import * as d3 from "d3"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Book, X, Sparkles, ZoomIn, ZoomOut, Maximize2, ArrowLeft, Layers, Loader2 } from "lucide-react"
+import { Search, Book, X, Sparkles, ZoomIn, ZoomOut, Maximize2, ArrowLeft, Layers, Loader2, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import BookCoverBackground from "@/components/BookCoverBackground"
 
@@ -228,6 +228,9 @@ export default function KnowledgeGraphExplorer() {
   const [isSearching, setIsSearching] = useState(false)
   const [highlightedBookId, setHighlightedBookId] = useState<string | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Info popup state
+  const [showInfoPopup, setShowInfoPopup] = useState(false)
   
   // Cache for already fetched genres
   const booksCacheRef = useRef<Map<string, BookNode[]>>(new Map())
@@ -752,12 +755,12 @@ export default function KnowledgeGraphExplorer() {
         "link",
         d3.forceLink<GenreNode, GraphLink>(genreGraphData.links)
           .id((d) => d.id)
-          .distance(180)
-          .strength((d) => d.similarityWeight * 0.3)
+          .distance(45)
+          .strength((d) => d.similarityWeight * 0.8)
       )
-      .force("charge", d3.forceManyBody().strength(-500))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(80))
+      .force("charge", d3.forceManyBody().strength(-80))
+      .force("center", d3.forceCenter(width / 2, height / 2).strength(0.3))
+      .force("collision", d3.forceCollide().radius(45))
 
     simulationRef.current = simulation
 
@@ -1410,6 +1413,109 @@ export default function KnowledgeGraphExplorer() {
                 </div>
               ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Center Title and Info Button (in genre view) */}
+      <AnimatePresence>
+        {viewMode === "genres" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-[12%] left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none"
+          >
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
+              Book Recommendation System
+            </h1>
+            <p className="text-lg text-white/70 mb-4">
+              made by <span className="text-primary font-semibold">SaiGuru</span>
+            </p>
+            <button
+              onClick={() => setShowInfoPopup(true)}
+              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/50 text-primary hover:bg-primary/30 transition-all duration-300 animate-pulse-glow"
+            >
+              <Info className="w-5 h-5" />
+              <span className="text-sm font-medium">How it works</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Info Popup Modal */}
+      <AnimatePresence>
+        {showInfoPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInfoPopup(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-card border border-border rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Info className="w-5 h-5 text-primary" />
+                  About This System
+                </h2>
+                <button
+                  onClick={() => setShowInfoPopup(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <div>
+                  <h3 className="text-foreground font-semibold mb-1">🎯 What is this?</h3>
+                  <p>An intelligent book recommendation system that helps you discover new books based on thematic and emotional similarities.</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-foreground font-semibold mb-1">📚 How to Use</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Click on any genre circle to explore books in that category</li>
+                    <li>Use the search bar to find specific books by title</li>
+                    <li>Click on book nodes to see detailed sentiment profiles</li>
+                    <li>Connected books share similar emotional/thematic qualities</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h3 className="text-foreground font-semibold mb-1">🧠 AI-Powered Analysis</h3>
+                  <p>Each book is analyzed using <span className="text-accent">GPT-4o-mini</span> to generate a 5-dimensional sentiment profile:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li><strong>Moody:</strong> Atmospheric and emotional depth</li>
+                    <li><strong>Scientific:</strong> Technical or factual content</li>
+                    <li><strong>Optimistic:</strong> Hopeful and positive themes</li>
+                    <li><strong>Philosophical:</strong> Deep thinking and existential questions</li>
+                    <li><strong>Adventurous:</strong> Action and exploration</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h3 className="text-foreground font-semibold mb-1">🔗 Connection Algorithm</h3>
+                  <p>Books are connected using <span className="text-primary">cosine similarity</span> on their sentiment vectors. Only the strongest matches (above 90% similarity) are shown as connections.</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-foreground font-semibold mb-1">📖 Data Sources</h3>
+                  <p>Book information is fetched from the <span className="text-primary">Open Library API</span>, a free and open source database of books.</p>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-border text-center">
+                <p className="text-xs text-muted-foreground">Built with ❤️ by <span className="text-primary font-semibold">SaiGuru</span></p>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
